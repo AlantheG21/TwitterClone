@@ -71,9 +71,73 @@ export const signup = async (req, res) => {
 }
 
 export const login = async (req, res) => {
-    res.send('Login route');
+    try {
+        const { username, password } = req.body;
+
+        // Basic validation
+        if (!username || !password) {
+            return res.status(400).json({ message: "Username and password are required" });
+        }
+
+        // Find user by username
+        const user = await User.findOne({ username });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid username" });
+        }
+
+        // Compare provided password with stored hashed password
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+        if(!isPasswordCorrect){
+            return res.status(400).json({ message: "Invalid password" });
+        }
+
+        // Generate token and set cookie
+        generateTokenAndSetCookie(user._id, res);
+
+        // Respond with user data
+        res.status(200).json({
+            _id: user._id,
+            fullName: user.fullName,
+            username: user.username,
+            email: user.email,
+            followers: user.followers,
+            following: user.following,
+            profileImg: user.profileImg,
+            coverImg: user.coverImg
+        });
+    } catch (error) {
+        console.log("Error during login:", error);
+        res.status(500).json({ message: error.message });
+    }
 }
 
 export const logout = async (req, res) => {
-    res.send('Logout route');
+    try {
+        /*
+            Clears the JWT cookie from the client's browser to log the user out.
+            The cookie is cleared with the same security options used when setting it.
+            (Look at generateTokenAndSetCookie function in generateToken.js for reference)
+        */
+        res.clearCookie("jwt", {
+            httpOnly: true,
+            sameSite: "strict",
+            secure: process.env.NODE_ENV !== "development"
+        });
+        res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.log("Error during logout:", error);
+        res.status(500).json({ message: error.message });
+    }
+}
+
+export const getMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select("-password"); // Exclude password field
+        res.status(200).json(user);
+    } catch (error) {
+        console.log("Error in getMe controller:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
 }
