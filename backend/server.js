@@ -1,8 +1,11 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth.routes.js'; // Using .js extension because of ES module
-import connectMongoDB from './db/connectMongoDB.js';
 import cookieParser from 'cookie-parser';
+
+import connectMongoDB from './db/connectMongoDB.js'; // Using .js extension because of ES module
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+
 
 const app = express();
 
@@ -15,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));  // Middleware to parse URL-enc
 app.use(cookieParser()); // Middleware to parse cookies
 
 app.use("/api/auth", authRoutes)
+app.use("/api/users", userRoutes)
 
 app.listen(PORT || 5000, () => {
     connectMongoDB();
