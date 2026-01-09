@@ -1,5 +1,6 @@
 import User from '../models/user.model.js';
 import Notification from '../models/notification.model.js'
+import bcrypt from 'bcryptjs';
 
 export const getUserProfile = async (req, res) => {
     const { username } = req.params;
@@ -23,7 +24,41 @@ export const getUserProfile = async (req, res) => {
     }
 }
 
-export const getSuggestedUsers = async (req, res) => {}
+export const getSuggestedUsers = async (req, res) => {
+    /*
+        The logic behind this function could be optimized better prolly.
+        For now this works fine
+    */
+    try {
+        const userId = req.user._id
+
+        // Get user document to only conatin following field
+        const usersFollowedByMe = await User.findById(userId).select("following")
+
+        // Get all users from the User collection that are NOT the user making the request (userId)
+        const users = await User.aggregate([
+            {
+                $match: {
+                    _id: {$ne:userId}
+                }
+            },
+            {$sample:{size: 10}}
+        ])
+
+        // Get all users from collection that the requested user is not following
+        const filteredUsers = users.filter(user => !usersFollowedByMe.following.includes(user._id))
+        // Get 4 out of the filtered users as suggestions
+        const suggestedUsers = filteredUsers.slice(0,4)
+
+        // Don't show password for returned suggested users
+        suggestedUsers.forEach(user => user.password=null)
+
+        res.status(200).json(suggestedUsers)
+    } catch (error) {
+        console.log("Error in getSuggestedUsers: ", error.message)
+        res.status(500).json({ error: error.message});
+    }
+}
 
 export const followUnfollowUser = async (req, res) => {
     const { id } = req.params; // ID of the user to follow
@@ -68,7 +103,7 @@ export const followUnfollowUser = async (req, res) => {
             });
 
             await newNotification.save();
-            
+
             res.status(200).json({ message: "User followed successfully"})
         } else{
             // Unfollow user
@@ -86,4 +121,34 @@ export const followUnfollowUser = async (req, res) => {
     }
 }
 
-export const updateUserProfile = async (req, res) => {}
+export const updateUserProfile = async (req, res) => {
+    const { fullName, email, username, currentPassword, newPassword, bio, link } = req.body;
+    let { profileImg, coverImg } = req.body;
+
+    const userId = req.user._id;
+
+    try {
+        const user = await User.findById(userId);
+
+        if(!user) return res.status(404).json({ error: "User not found" });
+
+        if((!newPassword && currentPassword) || (newPassword && !currentPassword)){
+            return res.status(404).json({ error: "Please provide both current and new password" });
+        }
+
+        if (currentPassword && newPassword){
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+            if(!isMatch) return res.status(400).json({ error: "Invalid Password" });
+            if(newPassword.length < 6) return res.status(404).json({ error: "Password must be at least 6 characters long" });
+
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        
+
+    } catch (error) {
+        
+    }
+}
