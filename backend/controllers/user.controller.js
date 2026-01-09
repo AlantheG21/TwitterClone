@@ -1,6 +1,7 @@
 import User from '../models/user.model.js';
-import Notification from '../models/notification.model.js'
+import Notification from '../models/notification.model.js';
 import bcrypt from 'bcryptjs';
+import { v2 as cloudinary } from 'cloudianry';
 
 export const getUserProfile = async (req, res) => {
     const { username } = req.params;
@@ -128,6 +129,14 @@ export const updateUserProfile = async (req, res) => {
     const userId = req.user._id;
 
     try {
+        /*
+            IMPORTANT!!!
+
+            The logic behind the function will work
+
+            However, it has optimization issues that would be worth fixing or modifying 
+            later on.
+        */
         const user = await User.findById(userId);
 
         if(!user) return res.status(404).json({ error: "User not found" });
@@ -146,9 +155,33 @@ export const updateUserProfile = async (req, res) => {
             user.password = await bcrypt.hash(newPassword, salt);
         }
 
-        
+        if(profileImg){
+            const uploadedResponse = await cloudinary.uploader.upload(profileImg, {public_id: 'profile picture'})
+            profileImg = uploadedResponse.secure_url;
+        }
+
+        if(coverImg){
+            const uploadedResponse = await cloudinary.uploader.upload(coverImg, {public_id: 'cover image'})
+            coverImg = uploadedResponse.secure_url
+        }
+
+        user.fullName = fullName || user.fullName;
+        user.email = email || user.email;
+        user.username = username || user.username;
+        user.bio = bio || user.bio;
+        user.link = link || user.link;
+        user.profileImg = profileImg || user.profileImg;
+        user.coverImg = coverImg || user.coverImg;
+
+        user = await user.save();
+
+        // Password should not be shown in response
+        user.password = null;
+
+        res.status(200).json({ message: "Updated profile successfully", data: user });
 
     } catch (error) {
-        
+        console.log("Error in updateUserProfile controller: ", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 }
