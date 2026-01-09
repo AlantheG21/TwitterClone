@@ -1,4 +1,5 @@
 import User from '../models/user.model.js';
+import Notification from '../models/notification.model.js'
 
 export const getUserProfile = async (req, res) => {
     const { username } = req.params;
@@ -58,15 +59,27 @@ export const followUnfollowUser = async (req, res) => {
             console.log(`Following user with ID: ${targetUser._id}`);
             await User.findByIdAndUpdate(loggedInUser._id, { $push: { following: targetUser._id } });
             await User.findByIdAndUpdate(targetUser._id, { $push: { followers: loggedInUser._id } });
+
+            // Send a notification to target user
+            const newNotification = new Notification({
+                type: "follow",
+                from: req.user._id,
+                to: targetUser._id
+            });
+
+            await newNotification.save();
+            
+            res.status(200).json({ message: "User followed successfully"})
         } else{
             // Unfollow user
             console.log(`Unfollowing user with ID: ${targetUser._id}`);
             await User.findByIdAndUpdate(loggedInUser._id, { $pull: { following: targetUser._id} });
             await User.findByIdAndUpdate(targetUser._id, { $pull: { followers: loggedInUser._id} });
 
+            res.status(200).json({ message: "User unfollowed successfully"})
+
         }
-        
-        res.status(200).json({message: isFollowing ? "User unfollowed successfully" : "User followed successfully"});
+
     } catch (error) {
         console.log("Error in followUser controller:", error.message);
         res.status(500).json({ error: "Internal Server Error" });
