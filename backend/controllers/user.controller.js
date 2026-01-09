@@ -24,44 +24,53 @@ export const getUserProfile = async (req, res) => {
 
 export const getSuggestedUsers = async (req, res) => {}
 
-export const followUser = async (req, res) => {
+export const followUnfollowUser = async (req, res) => {
     const { id } = req.params; // ID of the user to follow
     const loggedInUser = req.user; // User making the request
-    console.log(`User ${loggedInUser.username} is attempting to follow user with ID: ${id}`);
+    console.log(`UserId ${loggedInUser._id} is attempting to follow user with ID: ${id}`);
 
+    /*
+        Most optimal way to perform follow/unfollow operation (I think):
+        1. Check if id passed belongs to loggedInUser - prevent self-follow/unfollow
+        2. Check if user with given id exists
+        3. If not, check if loggedInUser is already following the user with the given id
+        4. If not following, add to following and followers lists respectively
+        5. If already following, unfollow by removing from lists
+
+        This way we minimize the number of database calls and ensure data consistency.
+    */
     try {
-        const userToFollow = await User.findById(id);
-
-        // Check if the user to follow exists
-        if (!userToFollow) {
-            return res.status(404).json({ error: "User not found" });
+        if(id === String(loggedInUser._id)){
+            return res.status(400).json({ error: "You cannot follow/unfollow yourself" });
         }
 
-        // Prevent users from following themselves
-        if (userToFollow._id.equals(loggedInUser._id)) {
-            return res.status(400).json({ error: "You cannot follow yourself" });
+        const targetUser = await User.findById(id);
+
+        if(!targetUser){
+            return res.status(404).json({ error: "User to follow/unfollow not found" });
         }
 
-        // Check if the user is already following
-        if (loggedInUser.following.includes(userToFollow._id)) {
-            return res.status(400).json({ error: "You are already following this user" });
+        const isFollowing = loggedInUser.following.includes(targetUser._id);
+        console.log(`Is user ${loggedInUser._id} already following target user?`, isFollowing);
+
+        if(!isFollowing){
+            // Follow user
+            console.log(`Following user with ID: ${targetUser._id}`);
+            await User.findByIdAndUpdate(loggedInUser._id, { $push: { following: targetUser._id } });
+            await User.findByIdAndUpdate(targetUser._id, { $push: { followers: loggedInUser._id } });
+        } else{
+            // Unfollow user
+            console.log(`Unfollowing user with ID: ${targetUser._id}`);
+            await User.findByIdAndUpdate(loggedInUser._id, { $pull: { following: targetUser._id} });
+            await User.findByIdAndUpdate(targetUser._id, { $pull: { followers: loggedInUser._id} });
+
         }
-
-        // Add to following list
-        loggedInUser.following.push(userToFollow._id);
-        await loggedInUser.save();
-
-        // Add to followers list
-        userToFollow.followers.push(loggedInUser._id);
-        await userToFollow.save();
-
-        res.status(200).json({ message: "Successfully followed user" });
+        
+        res.status(200).json({message: isFollowing ? "User unfollowed successfully" : "User followed successfully"});
     } catch (error) {
         console.log("Error in followUser controller:", error.message);
         res.status(500).json({ error: "Internal Server Error" });
     }
 }
-
-export const unfollowUser = async (req, res) => {}
 
 export const updateUserProfile = async (req, res) => {}
