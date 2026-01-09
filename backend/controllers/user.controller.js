@@ -134,7 +134,7 @@ export const updateUserProfile = async (req, res) => {
 
             The logic behind the function will work
 
-            However, it has optimization issues that would be worth fixing or modifying 
+            However, it has optimization issues (I'm pretty sure) that would be worth fixing or modifying 
             later on.
         */
         const user = await User.findById(userId);
@@ -156,11 +156,28 @@ export const updateUserProfile = async (req, res) => {
         }
 
         if(profileImg){
+            if(user.profileImg){
+                /*
+                    Explanation:
+                    Cloudinary saves images on storage as urls (ex: https://res.cloudinary.com/asd1voaw4/image/uplaod/v12783741/alfhoaweogi8whfa7afgo.png)
+                    The destroy function uses the id passed to it to find and delete the image with the id from storage
+
+                    1. First split method is used to divide the url into a list of substrings using the "/" character as the seperator
+                    2. After spliting, we take the very last element from the list (alfhoaweogi8whfa7afgo.png)
+                    3. Then we split the element we just took again, using the "." character as the seperator (['alfhoaweogi8whfa7afgo', 'png'])
+                    4. Finally we take the first element from the list (alfhoaweogi8whfa7afgo)
+                */
+                await cloudinary.uploader.destroy(user.profileImg.split("/").pop().split(".")[0])
+            }
             const uploadedResponse = await cloudinary.uploader.upload(profileImg, {public_id: 'profile picture'})
             profileImg = uploadedResponse.secure_url;
         }
 
         if(coverImg){
+            if(user.coverImg){
+                await cloudinary.uploader.destroy(user.coverImg.split("/").pop().split(".")[0])
+            }
+
             const uploadedResponse = await cloudinary.uploader.upload(coverImg, {public_id: 'cover image'})
             coverImg = uploadedResponse.secure_url
         }
