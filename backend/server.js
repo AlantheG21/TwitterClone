@@ -6,7 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import connectMongoDB from './db/connectMongoDB.js'; // Using .js extension because of ES module
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
-import postRoutes from '.routes/post.routes.js';
+import postRoutes from './routes/post.routes.js';
 
 
 const app = express();
