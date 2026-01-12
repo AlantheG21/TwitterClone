@@ -1,7 +1,7 @@
 import User from '../models/user.model.js';
 import Notification from '../models/notification.model.js';
 import bcrypt from 'bcryptjs';
-import { v2 as cloudinary } from 'cloudianry';
+import { v2 as cloudinary } from 'cloudinary';
 
 export const getUserProfile = async (req, res) => {
     const { username } = req.params;
@@ -137,7 +137,7 @@ export const updateUserProfile = async (req, res) => {
             However, it has optimization issues (I'm pretty sure) that would be worth fixing or modifying 
             later on.
         */
-        const user = await User.findById(userId);
+        let user = await User.findById(userId);
 
         if(!user) return res.status(404).json({ error: "User not found" });
 
