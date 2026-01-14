@@ -7,6 +7,7 @@ import connectMongoDB from './db/connectMongoDB.js'; // Using .js extension beca
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import postRoutes from './routes/post.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 
 
 const app = express();
@@ -28,6 +29,7 @@ app.use(cookieParser()); // Middleware to parse cookies
 app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/posts", postRoutes)
+app.use("/notifications", notificationRoutes)
 
 app.listen(PORT || 5000, () => {
     connectMongoDB();
