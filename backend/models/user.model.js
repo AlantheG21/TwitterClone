@@ -49,7 +49,14 @@ const userSchema = new mongoose.Schema({
     link: {
         type: String,
         default: "" // Default to empty string if no link is provided
-    }
+    },
+    likedPosts: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Posts',
+            default: []
+        }
+    ]
 
 }, { timestamps: true });
 
