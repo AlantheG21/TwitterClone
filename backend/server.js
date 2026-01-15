@@ -29,7 +29,7 @@ app.use(cookieParser()); // Middleware to parse cookies
 app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/posts", postRoutes)
-app.use("/notifications", notificationRoutes)
+app.use("/api/notifications", notificationRoutes)
 
 app.listen(PORT || 5000, () => {
     connectMongoDB();
